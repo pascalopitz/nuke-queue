@@ -1,9 +1,6 @@
 const _ = require('lodash');
 const Sonos = require('node-sonos');
 
-console.log('Searching for Sonos devices...');
-const search = Sonos.search();
-
 const BLACKLIST = [
     'Pnau',
     'Lorde',
@@ -57,30 +54,34 @@ const BLACKLIST = [
     'Marky Style'
 ];
 
+console.log('Searching for Sonos devices...');
+const search = Sonos.search();
+
 search.on('DeviceAvailable', function (device, model) {
     console.log(device, model)
-    //search.destroy();
 
-    device.getQueue(function (err, resp) {
-        //console.log(err, resp);
+    function run() {
+        console.log('Checking queue');
+        device.getQueue(function (err, resp) {
 
-        const blacklisted = _(resp.items)
-                            .map(t => t.artist)
-                            .uniq()
-                            .intersection(BLACKLIST)
-                            .value();
+            const blacklisted = _(resp.items)
+                                .map(t => t.artist)
+                                .uniq()
+                                .intersection(BLACKLIST)
+                                .value();
 
-        if (!blacklisted.length) {
-            console.log('All good');
-            process.exit();
-            return;
-        }
+            if (!blacklisted.length) {
+                console.log('All good');
+                return;
+            }
 
-        console.log('Nuke queue');
-        device.flush((err) => {
-            console.log('Nuke queue done!');
-            process.exit();
+            console.log('Nuke queue');
+            device.flush((err) => {
+                console.log('Nuke queue done!');
+            });
         });
+    }
 
-    });
+    run();
+    setInterval(run, 10 * 1000);
 });
